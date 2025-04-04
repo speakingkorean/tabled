@@ -3,64 +3,81 @@
     <div class="top-bar">
       <div class="date">{{ formattedDate }}</div>
       <div>
-        <button @click="openModal" class="add-button">Add</button>
+        <button @click="openAdd" class="add-button">Add</button>
         <button @click="openList" class="add-button">List</button>
       </div>
     </div>
     <!-- {{ reservations }} -->
     <div class="body-content">
-      <div v-if="isModalVisible" class="modal-overlay">
-        <div class="modal">
+      <div v-if="isAddVisible" class="modal-overlay" @click="closeAdd">
+        <div class="modal" @click.stop>
           <h2>Add Reservation</h2>
           <form @submit.prevent="handleFormSubmit">
-            <label for="time">When:</label>
+            <label for="time">Time:</label><br>
             <input type="time" id="time" v-model="reservation.time">
             <br>
-            <label for="size">How many people:</label>
+            <label for="size">Size:</label><br>
             <input type="number" id="size" v-model="reservation.size" min="1" max="35">
             <br>
-            <label for="name">Name:</label>
+            <label for="name">Name:</label><br>
             <input type="text" id="name" v-model="reservation.name" />
             <br>
-            <label for="contact">Contact Number:</label>
+            <label for="contact">Contact:</label><br>
             <input type="text" id="contact" v-model="reservation.contact" />
             <br>
-            <label for="duration">How long:</label>
+            <label for="duration">Minutes:</label><br>
             <input type="number" id="duration" v-model="reservation.duration" min="30" max="180">
+            <br>
+            <label for="notes">Notes:</label><br>
+            <textarea id="notes" v-model="reservation.notes" class="input-field" rows="4"
+              placeholder="Type here..."></textarea>
             <div class="modal-actions">
-              <button type="button" @click="closeModal">Close</button>
               <button type="submit">Submit</button>
             </div>
           </form>
         </div>
       </div>
-      <div v-if="isListVisible" class="modal-overlay">
-        <div class="modal">
+      <div v-if="isListVisible" class="modal-overlay" @click="closeList">
+        <div class="modal" @click.stop>
           <h2>List</h2>
-          {{ reservations }}
-          <div class="modal-actions">
-            <button type="button" @click="closeList">Close</button>
-          </div>
+          <div v-if="reservations.length === 0">No reservations found.</div>
+          <ul>
+            <li v-for="(reservation, index) in reservations" :key="reservation.id">
+              <div><strong>Time:</strong> {{ reservation.time }}</div>
+              <div><strong>Size:</strong> {{ reservation.size }}</div>
+              <div><strong>Name:</strong> {{ reservation.name }}</div>
+              <div><strong>Notes:</strong> {{ reservation.notes || 'No notes' }}</div>
+              <hr />
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div v-if="isTableVisible" class="modal-overlay" @click="closeTable">
+        <div class="modal" @click.stop>
+          <h2>Table</h2>
+          <p>
+            {{ table }}
+          </p>
         </div>
       </div>
       <div class="grid-container">
-        <div class="grid-cell grid-span-2">Table 1</div>
-        <div class="grid-cell">Table 4A</div>
-        <div class="grid-cell">Table 4</div>
-        <div class="grid-cell grid-span-2">Table 2</div>
-        <div class="grid-cell">Table 5A</div>
-        <div class="grid-cell">Table 5</div>
-        <div class="grid-cell grid-span-2">Table 3</div>
-        <div class="grid-cell">Table 6A</div>
-        <div class="grid-cell">Table 6</div>
+        <div class="grid-cell grid-span-2" @click="() => openTable('1')">Table 1</div>
+        <div class="grid-cell" @click="() => openTable('4A')">Table 4A</div>
+        <div class="grid-cell" @click="() => openTable('4')">Table 4</div>
+        <div class="grid-cell grid-span-2" @click="() => openTable('2')">Table 2</div>
+        <div class="grid-cell" @click="() => openTable('5A')">Table 5A</div>
+        <div class="grid-cell" @click="() => openTable('5')">Table 5</div>
+        <div class="grid-cell grid-span-2" @click="() => openTable('3')">Table 3</div>
+        <div class="grid-cell" @click="() => openTable('6A')">Table 6A</div>
+        <div class="grid-cell" @click="() => openTable('6')">Table 6</div>
         <div class="empty-cell grid-span-3"></div>
-        <div class="grid-cell">Table 7</div>
+        <div class="grid-cell" @click="() => openTable('7')">Table 7</div>
         <div class="empty-cell grid-span-3"></div>
-        <div class="grid-cell">Table 8</div>
+        <div class="grid-cell" @click="() => openTable('8')">Table 8</div>
         <div class="empty-cell grid-span-3"></div>
-        <div class="grid-cell">Table 9</div>
+        <div class="grid-cell" @click="() => openTable('9')">Table 9</div>
         <div class="empty-cell grid-span-3"></div>
-        <div class="grid-cell">Table 10</div>
+        <div class="grid-cell" @click="() => openTable('10')">Table 10</div>
       </div>
     </div>
   </div>
@@ -68,6 +85,7 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import { v4 as uuidv4 } from 'uuid' // Import the uuid function
 const today = ref(new Date())
 const reservations = ref([])
 const reservationDefault = {
@@ -76,33 +94,50 @@ const reservationDefault = {
   name: '',
   contact: '',
   duration: 90,
+  notes: '',
+  table: '',
+  id: '',
 }
-const reservation = reactive({ ...reservationDefault })
-const isModalVisible = ref(false)
+let reservation = reactive({ ...reservationDefault })
+const isAddVisible = ref(false)
 const isListVisible = ref(false)
+const isTableVisible = ref(false)
+const table = ref('')
 
-const openModal = () => {
-  isModalVisible.value = true
+const openAdd = () => {
+  isAddVisible.value = true
 }
-
-const closeModal = () => {
-  isModalVisible.value = false
+const closeAdd = () => {
+  isAddVisible.value = false
 }
-
 const openList = () => {
   isListVisible.value = true
 }
-
 const closeList = () => {
   isListVisible.value = false
+}
+const openTable = (tableNumber) => {
+  table.value = tableNumber
+  isTableVisible.value = true
+}
+const closeTable = () => {
+  table.value = ''
+  isTableVisible.value = false
+}
+const closeAll = () => {
+  isAddVisible.value = false
+  isListVisible.value = false
+  isTableVisible.value = false
 }
 
 const handleFormSubmit = () => {
   console.log('you clicked submit')
+  reservation.id = uuidv4()
   reservations.value.push(reservation)
-  // todo: need to RESET
-  // reservation.value = { ...reservationDefault }
-  closeModal()
+  reservations.value.sort((a, b) => a.time.localeCompare(b.time))
+  // sort by time
+  reservation = reactive({ ...reservationDefault })
+  closeAdd()
 }
 
 const showList = () => {
@@ -139,7 +174,7 @@ const formattedDate = computed(() => {
   background-color: #333;
   color: white;
   padding: 20px;
-  z-index: 1000;
+  z-index: 300;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -247,5 +282,17 @@ const formattedDate = computed(() => {
 
 .grid-span-3 {
   grid-column: span 3;
+}
+
+.input-field {
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.input-field:focus {
+  border-color: #4caf50;
 }
 </style>
